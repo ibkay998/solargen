@@ -87,7 +87,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'solargen',
-        'USER': 'postgres',
+        'USER': 'solargen',
         'PASSWORD':'solargen123',
         'HOST': 'localhost',
         'PORT': '5432',
