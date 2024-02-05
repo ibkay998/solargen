@@ -37,7 +37,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'solarapp',
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -77,7 +87,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'solargen',
-        'USER': 'solargen',
+        'USER': 'postgres',
         'PASSWORD':'solargen123',
         'HOST': 'localhost',
         'PORT': '5432',
@@ -103,6 +113,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Password hashing
+# https://devdocs.io/django~4.2/topics/auth/passwords#auth-included-hashers
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher"
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
