@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from rest_framework.routers import DefaultRouter
 
 urlpatterns = [
     # path('api/signup/', views.signup, name='signup'),
@@ -11,4 +12,10 @@ urlpatterns = [
     path('installers/<int:installer_id>/users/<int:user_id>/user_initial_password/', views.get_user_initial_password, name='get_initial_password'),
     path('users/signin/', views.user_signin, name='user_signin'),
     path('users/change_password/', views.user_change_password, name='user_change_password'),
+
 ]
+
+
+router = DefaultRouter()
+router.register(r"user", views.UserProfileViewSet, basename="user")
+urlpatterns += router.urls

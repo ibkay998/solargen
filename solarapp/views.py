@@ -19,10 +19,19 @@ from django.contrib.auth import authenticate
 
 # Create your views here.
 
-from .serializers import MyTokenObtainPairSerializer,SignInSerializer
+from .serializers import InstallerSignInSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+
+class UserProfileViewSet(viewsets.ModelViewSet):
+    """
+    UserModel View.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserProfileSerializer
+    queryset = UserProfile.objects.all()
 
 # class MyObtainTokenPairView(TokenObtainPairView):
 #     permission_classes = (AllowAny,)
@@ -92,12 +101,12 @@ def installer_signup(request):
 @api_view(['POST'])
 def installer_signin(request):
     if request.method == 'POST':
-        serializer = SignInSerializer(data=request.data)
+        serializer = InstallerSignInSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.validated_data['user']
+            installer = serializer.validated_data['installer']
 
             # Authentication successful, generate JWT token
-            refresh = RefreshToken.for_user(user)
+            refresh = RefreshToken.for_user(installer)
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -139,34 +148,21 @@ def add_user(request, installer_id):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
 def user_signin(request):
     if request.method == 'POST':
         serializer = UserProfileSignInSerializer(data=request.data)
         if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            try:
-                user = UserProfile.objects.get(username=username)
-            except UserProfile.DoesNotExist:
-                return Response({'error': 'Invalid credentials1'}, status=status.HTTP_401_UNAUTHORIZED)
+            user = serializer.validated_data['user']
 
-            print(user.username,user.password,password)
-
-            # user = authenticate(request, username=username, password=password)
-            if check_password(password, user.password):
-                # print(password,user.password)
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }, status=status.HTTP_200_OK)
-                # return Response({'error': 'Invalid credentials3'})
-            else:
-                return Response({'error': 'Invalid credentials2'}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            # Authentication successful, generate JWT token
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def get_user_initial_password(request, installer_id, user_id):
@@ -189,20 +185,26 @@ def get_user_initial_password(request, installer_id, user_id):
 def user_change_password(request):
     if request.method == 'PUT':
         user = request.user
-        print(request.auth)
-        if not user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        print(request.auth,request.data,request.user,sep='\n')
+        # if not user.is_authenticated:
+        #     return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
 
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
 
+        # Fetch UserProfile instance
+        try:
+            user_profile = UserProfile.objects.get(username=user.username)
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
         # Check if the old password matches the current password of the user
-        if not check_password(old_password, user.password):
+        if not check_password(old_password, user_profile.password):
             return Response({'error': 'Invalid old password'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update the user's password
-        user.set_password(new_password)
-        user.save()
+        user_profile.set_password(new_password)
+        user_profile.save()
 
         return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
 

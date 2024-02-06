@@ -20,7 +20,7 @@ class UserProfile(CustomUser):
         proxy = True
 
 # Creating an instance of installer_0
-# installer_0, created = Installer.objects.get_or_create(username='installer_0')
+installer_0, created = Installer.objects.get_or_create(username='installer_0')
 
 # # Signal to handle deletion of installers
 # @receiver(pre_delete, sender=Installer)
