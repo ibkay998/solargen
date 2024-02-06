@@ -40,13 +40,11 @@ class SignInSerializer(serializers.Serializer):
             try:
                 user = Installer.objects.get(username=username)
             except Installer.DoesNotExist:
-                raise serializers.ValidationError('Invalid credentials1')
+                raise serializers.ValidationError('Invalid credentials')
 
-            # Check if the provided password matches the user's password
-            print(password,user.password,"password")
+        
             if not check_password(password, user.password):
-
-                raise serializers.ValidationError('Invalid credentials2')
+                raise serializers.ValidationError('Invalid credentials')
             
             # If authentication successful, return the user
             data['user'] = user

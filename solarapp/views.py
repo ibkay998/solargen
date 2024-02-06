@@ -182,9 +182,10 @@ def get_user_initial_password(request, installer_id, user_id):
         return Response({'initial_password': user.password}, status=status.HTTP_200_OK)
 
 
-# @permission_classes([AllowAny])
+# 
 
 @api_view(['PUT'])
+@permission_classes([IsAuthenticated])
 def user_change_password(request):
     if request.method == 'PUT':
         user = request.user
