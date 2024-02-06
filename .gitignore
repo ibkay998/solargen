@@ -1,4 +1,4 @@
 venv
 .env
-virtualenv
+/virtualenv
 solarappEnv
