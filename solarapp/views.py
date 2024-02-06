@@ -9,43 +9,82 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from rest_framework import status
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view,permission_classes,authentication_classes
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password,make_password
 
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import authenticate
 
 # Create your views here.
 
-from .serializers import MyTokenObtainPairSerializer
+from .serializers import MyTokenObtainPairSerializer,SignInSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 
-class MyObtainTokenPairView(TokenObtainPairView):
-    permission_classes = (AllowAny,)
-    serializer_class = MyTokenObtainPairSerializer
+# class MyObtainTokenPairView(TokenObtainPairView):
+#     permission_classes = (AllowAny,)
+#     serializer_class = MyTokenObtainPairSerializer
+
+
+# @api_view(['POST'])
+# def signup(request):
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+
+#     if not username or not password:
+#         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+#     user = User.objects.create_user(username=username, password=password)
+#     user.save()
+
+#     return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
+
+# @api_view(['POST'])
+# def login(request):
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+
+#     user = authenticate(username=username, password=password)
+#     if user:
+#         refresh = RefreshToken.for_user(user)
+#         return Response({
+#             'refresh': str(refresh),
+#             'access': str(refresh.access_token),
+#         }, status=status.HTTP_200_OK)
+#     else:
+#         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_list(request):
+#     users = User.objects.all()
+#     user_data = [{'id': user.id, 'username': user.username} for user in users]
+#     return Response(user_data)
 
 @api_view(['POST'])
 def installer_signup(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
 
         if Installer.objects.filter(email=email).exists():
-            response = {
-                'Error':'E-mail Already Used'
-            }
-            return JsonResponse(response)
+            response = {'error': 'E-mail already in use'}
+            return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
         elif Installer.objects.filter(username=username).exists():
-            response = {
-                'Error':f'Username [{username}] Already Used'
-            }
-            return JsonResponse(response)
-        
+            response = {'error': f'Username "{username}" already in use'}
+            return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
+
+        # Hash the password before saving
+        hashed_password = make_password(password)
+
         serializer = InstallerProfileSerializer(data=request.data)
         if serializer.is_valid():
+            # Set the hashed password in the serializer data
+            serializer.validated_data['password'] = hashed_password
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -53,30 +92,18 @@ def installer_signup(request):
 @api_view(['POST'])
 def installer_signin(request):
     if request.method == 'POST':
-        serializer = InstallerProfileSerializer(data=request.data)
+        serializer = SignInSerializer(data=request.data)
         if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
+            user = serializer.validated_data['user']
 
-            try:
-                user = Installer.objects.get(username=username)
-            except Installer.DoesNotExist:
-                return Response({'error': 'Invalid credentials1'}, status=status.HTTP_401_UNAUTHORIZED)
-
-            print(user.username,user.password,password)
-
-            # user = authenticate(request, username=username, password=password)
-            if check_password(password, user.password):
-                # print(password,user.password)
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }, status=status.HTTP_200_OK)
-                # return Response({'error': 'Invalid credentials3'})
-            else:
-                return Response({'error': 'Invalid credentials2'}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Authentication successful, generate JWT token
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -120,7 +147,6 @@ def user_signin(request):
         if serializer.is_valid():
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
-
             try:
                 user = UserProfile.objects.get(username=username)
             except UserProfile.DoesNotExist:
@@ -157,24 +183,27 @@ def get_user_initial_password(request, installer_id, user_id):
 
 
 # @permission_classes([AllowAny])
-@api_view(['POST'])
+
+@api_view(['PUT'])
 def user_change_password(request):
-    print(672342,request)
-    return Response({'initial_password': "fsddsf"}, status=status.HTTP_200_OK)
-    # if request.method == 'POST':
-    #     print(request,893428)
-    #     user = request.user
+    if request.method == 'PUT':
+        user = request.user
+        print(request.auth)
+        if not user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    #     old_password = request.data.get('old_password')
-    #     new_password = request.data.get('new_password')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
 
-    #     # Check if the old password matches the current password of the user
-    #     if not check_password(old_password, user.password):
-    #         return Response({'error': 'Invalid old password'}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if the old password matches the current password of the user
+        if not check_password(old_password, user.password):
+            return Response({'error': 'Invalid old password'}, status=status.HTTP_400_BAD_REQUEST)
 
-    #     # Update the user's password
-    #     user.set_password(new_password)
-    #     user.save()
+        # Update the user's password
+        user.set_password(new_password)
+        user.save()
 
-    #     return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
+    
     

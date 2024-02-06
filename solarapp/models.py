@@ -4,20 +4,13 @@ from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.hashers import make_password
 from django.utils.crypto import get_random_string
+from django.contrib.auth.models import AbstractUser
+from django.db import models
 
-# def autoGenPassword():
-
-#     return make_password(get_random_string(length=10))
-
-
-class Installer(models.Model):
+class Installer(AbstractUser):
     # Installer Profile model
-    username = models.CharField(max_length=100)
-    email = models.EmailField(default='janeDoe@greek.com')
-    password = models.CharField(max_length=100,default='password123')
-    
-    first_name = models.CharField(max_length=30,default='Jane')
-    last_name = models.CharField(max_length=30,default='Doe')
+    pass
+
 
 class UserProfile(models.Model):
     # User Profile model
@@ -29,30 +22,6 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=30,default='Brown')
 
     installer = models.ForeignKey(Installer, on_delete=models.SET_DEFAULT, default=None, null=True, related_name='users')
-
-# class UserProfile(models.Model):
-#     # User Profile model
-#     username = models.CharField(max_length=100)
-#     email = models.EmailField(default='jamesBrown@greek.com')
-#     password = models.CharField(max_length=100,default='password123')
-
-#     first_name = models.CharField(max_length=302,default='James')
-#     last_name = models.CharField(max_length=30,default='Brown')
-
-#     # installer = models.ForeignKey(Installer, on_delete=models.SET_DEFAULT, default=None, null=True)
-
-
-# class Installer(models.Model):
-#     # Installer Profile model
-#     username = models.CharField(max_length=100)
-#     email = models.EmailField(default='janeDoe@greek.com')
-#     password = models.CharField(max_length=100,default='password123')
-    
-#     first_name = models.CharField(max_length=302,default='Jane')
-#     last_name = models.CharField(max_length=30,default='Doe')
-    
-#     users = models.ManyToManyField(UserProfile, related_name='installers', blank=True)
-
 
 
 # Creating an instance of installer_0
